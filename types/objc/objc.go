@@ -205,6 +205,12 @@ type MethodSmallT struct {
 	ImpOffset   int32 // IMP
 }
 
+type Method32T struct {
+	NameVMAddr  uint32 // SEL
+	TypesVMAddr uint32 // const char *
+	ImpVMAddr   uint32 // IMP
+}
+
 type Method struct {
 	NameVMAddr  uint64 // & SEL
 	TypesVMAddr uint64 // & const char *
@@ -248,6 +254,11 @@ type PropertyT struct {
 	AttributesVMAddr uint64
 }
 
+type Property32T struct {
+	NameVMAddr       uint32
+	AttributesVMAddr uint32
+}
+
 type Property struct {
 	PropertyT
 	Name       string
@@ -261,6 +272,15 @@ type CategoryT struct {
 	ClassMethodsVMAddr       uint64
 	ProtocolsVMAddr          uint64
 	InstancePropertiesVMAddr uint64
+}
+
+type Category32T struct {
+	NameVMAddr               uint32
+	ClsVMAddr                uint32
+	InstanceMethodsVMAddr    uint32
+	ClassMethodsVMAddr       uint32
+	ProtocolsVMAddr          uint32
+	InstancePropertiesVMAddr uint32
 }
 
 type Category struct {
@@ -334,6 +354,10 @@ type ProtocolList struct {
 	Count     uint64
 	Protocols []uint64
 }
+type ProtocolList32 struct {
+	Count     uint32
+	Protocols []uint32
+}
 
 type ProtocolT struct {
 	IsaVMAddr                     uint64
@@ -350,6 +374,23 @@ type ProtocolT struct {
 	ExtendedMethodTypesVMAddr uint64
 	DemangledNameVMAddr       uint64
 	ClassPropertiesVMAddr     uint64
+}
+
+type Protocol32T struct {
+	IsaVMAddr                     uint32
+	NameVMAddr                    uint32
+	ProtocolsVMAddr               uint32
+	InstanceMethodsVMAddr         uint32
+	ClassMethodsVMAddr            uint32
+	OptionalInstanceMethodsVMAddr uint32
+	OptionalClassMethodsVMAddr    uint32
+	InstancePropertiesVMAddr      uint32
+	Size                          uint32
+	Flags                         uint32
+	// Fields below this point are not always present on disk.
+	ExtendedMethodTypesVMAddr uint32
+	DemangledNameVMAddr       uint32
+	ClassPropertiesVMAddr     uint32
 }
 
 type Protocol struct {
@@ -461,6 +502,14 @@ type CFString64T struct {
 	Info      uint64 // flag bits
 	Data      uint64 // char * (64-bit pointer)
 	Length    uint64 // number of non-NULL characters in above
+}
+
+// CFString32T object in a 32-bit MachO file
+type CFString32T struct {
+	IsaVMAddr uint32 // class32_t * (32-bit pointer)
+	Info      uint32 // flag bits
+	Data      uint32 // char * (32-bit pointer)
+	Length    uint32 // number of non-NULL characters in above
 }
 
 const (
@@ -642,7 +691,6 @@ type ClassRO struct {
 	Flags                ClassRoFlags
 	InstanceStart        uint32
 	InstanceSize         uint32
-	_                    uint32
 	IvarLayoutVMAddr     uint32
 	NameVMAddr           uint32
 	BaseMethodsVMAddr    uint32
@@ -685,9 +733,17 @@ type IvarList struct {
 }
 
 type IvarT struct {
-	Offset      uint64 // uint32_t*  (uint64_t* on x86_64)
+	Offset      uint64 // uint64_t*
 	NameVMAddr  uint64 // const char*
 	TypesVMAddr uint64 // const char*
+	Alignment   uint32
+	Size        uint32
+}
+
+type Ivar32T struct {
+	Offset      uint32 // uint32_t*
+	NameVMAddr  uint32 // const char*
+	TypesVMAddr uint32 // const char*
 	Alignment   uint32
 	Size        uint32
 }
@@ -695,7 +751,7 @@ type IvarT struct {
 type Ivar struct {
 	Name   string
 	Type   string
-	Offset uint32
+	Offset uint64
 	IvarT
 }
 

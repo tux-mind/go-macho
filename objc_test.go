@@ -43,7 +43,7 @@ var fooProtocol = objc.Protocol{
 
 var fooClass = objc.Class{
 	Name:       "Foo",
-	SuperClass: "", // <ROOT>
+	SuperClass: "", // NSOjbect
 	Prots:      []objc.Protocol{fooProtocol},
 	Props: []objc.Property{
 		{Name: "bar", Attributes: "T*,R,V_bar"},
@@ -66,14 +66,44 @@ var fooDutchCategory = objc.Category{
 	},
 }
 
+var liberrorClass = objc.Class{
+	Name:            "SampleClass",
+	SuperClass:      "", // NSObject
+	Props:           []objc.Property{{Name: "classVersionNumber", Attributes: "Tq,R,N"}},
+	InstanceMethods: []objc.Method{{Name: "classVersionNumber", Types: "q16@0:8"}},
+}
+
+var liberrorClass32 = objc.Class{
+	Name:            "SampleClass",
+	SuperClass:      "", // NSObject
+	Props:           []objc.Property{{Name: "classVersionNumber", Attributes: "Ti,R,N"}},
+	InstanceMethods: []objc.Method{{Name: "classVersionNumber", Types: "i8@0:4"}},
+}
+
 var objcFileTests = []objcFileTest{
 	{
-		"internal/testdata/objc/class-gcc-amd64-darwin-exec.base64",
-		[]*objc.Class{&fooClass},
-		[]objc.Protocol{fooProtocol},
-		[]objc.Category{fooDutchCategory},
-		[]bindClassTest{{"Foo", "NSObject"}},
-		[]bindCategoryTest{{"Dutch", "NSObject"}},
+		file:                 "internal/testdata/objc/class-gcc-amd64-darwin-exec.base64",
+		classes:              []*objc.Class{&fooClass},
+		protocols:            []objc.Protocol{fooProtocol},
+		categories:           []objc.Category{fooDutchCategory},
+		classesSuperBinds:    []bindClassTest{{"Foo", "NSObject"}},
+		categoriesClassBinds: []bindCategoryTest{{"Dutch", "NSObject"}},
+	}, {
+		file:              "internal/testdata/objc/liberror-arm64-darwin-dylib.base64",
+		classes:           []*objc.Class{&liberrorClass},
+		classesSuperBinds: []bindClassTest{{"SampleClass", "NSObject"}},
+	}, {
+		file:              "internal/testdata/objc/liberror-armv7-darwin-dylib.base64",
+		classes:           []*objc.Class{&liberrorClass32},
+		classesSuperBinds: []bindClassTest{{"SampleClass", "NSObject"}},
+	}, {
+		file:              "internal/testdata/objc/liberror-i386-darwin-dylib.base64",
+		classes:           []*objc.Class{&liberrorClass32},
+		classesSuperBinds: []bindClassTest{{"SampleClass", "NSObject"}},
+	}, {
+		file:              "internal/testdata/objc/liberror-x86_64-darwin-dylib.base64",
+		classes:           []*objc.Class{&liberrorClass},
+		classesSuperBinds: []bindClassTest{{"SampleClass", "NSObject"}},
 	},
 }
 
@@ -97,7 +127,7 @@ func propertyEquals(a, b *objc.Property) error {
 	return nil
 }
 
-// I am too lazy, tests code quality / performance doesn't matter
+// I am too lazy
 var protocolMethods = map[string]func(i *objc.Protocol) []objc.Method{
 	"instance methods":          func(i *objc.Protocol) []objc.Method { return i.InstanceMethods },
 	"class methods":             func(i *objc.Protocol) []objc.Method { return i.ClassMethods },
@@ -333,12 +363,16 @@ func TestObjcStructs(t *testing.T) {
 }
 
 var _catT = objc.CategoryT{}
+var _cat32T = objc.CategoryT{}
 
 const categoryClassOffset = uint64(unsafe.Offsetof(_catT.ClsVMAddr))
+const categoryClassOffset32 = uint64(unsafe.Offsetof(_cat32T.ClsVMAddr))
 
 var _clsT = objc.SwiftClassMetadata64{}
+var _cls32T = objc.SwiftClassMetadata{}
 
 const clsSuperClassOffset = uint64(unsafe.Offsetof(_clsT.SuperclassVMAddr))
+const clsSuperClassOffset32 = uint64(unsafe.Offsetof(_cls32T.SuperclassVMAddr))
 
 func TestObjcBinds(t *testing.T) {
 	for _, expectations := range objcFileTests {
@@ -372,6 +406,12 @@ func TestObjcBinds(t *testing.T) {
 			c := &categories[i]
 			catLookup[c.Name] = c
 		}
+		clsSuperOffset := clsSuperClassOffset
+		catClassOffset := categoryClassOffset
+		if !f.is64bit() {
+			clsSuperOffset = clsSuperClassOffset32
+			catClassOffset = categoryClassOffset32
+		}
 		// Classes' SuperClass
 		for _, test := range expectations.classesSuperBinds {
 			cls, found := classLookup[test.targetClassName]
@@ -379,7 +419,7 @@ func TestObjcBinds(t *testing.T) {
 				t.Fatalf("%s: class '%s' not found", expectations.file, test.targetClassName)
 			}
 			// the location whenre dyld shall place the pointer to the resolved super class
-			superClassPtr := cls.ClassPtr + clsSuperClassOffset
+			superClassPtr := cls.ClassPtr + clsSuperOffset
 			resolvedName, found := bindsLookup[superClassPtr]
 			if !found {
 				t.Fatalf("%s: class '%s' super class isn't in the list of binds", expectations.file, cls.Name)
@@ -395,7 +435,7 @@ func TestObjcBinds(t *testing.T) {
 			if !found {
 				t.Fatalf("%s: category '%s' not found", expectations.file, test.targetCategoryName)
 			}
-			classPtr := cat.VMAddr + categoryClassOffset
+			classPtr := cat.VMAddr + catClassOffset
 			resolvedName, found := bindsLookup[classPtr]
 			if !found {
 				t.Fatalf("%s: category '%s' class isn't in the list of binds", expectations.file, cat.Name)
@@ -406,5 +446,4 @@ func TestObjcBinds(t *testing.T) {
 			}
 		}
 	}
-
 }
