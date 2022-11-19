@@ -3,6 +3,7 @@ package objc
 import (
 	"fmt"
 	"strings"
+	"unsafe"
 
 	"github.com/blacktop/go-macho/types"
 )
@@ -376,6 +377,19 @@ type ProtocolT struct {
 	ClassPropertiesVMAddr     uint64
 }
 
+// ProtocolT.Size when empty
+const _protoSizeEmpty = uint32(unsafe.Offsetof(ProtocolT{}.ExtendedMethodTypesVMAddr))
+
+func (p *ProtocolT) HasExtendedMethodTypes() bool {
+	return p.Size >= (_protoSizeEmpty + uint32(unsafe.Sizeof(uint64(0))))
+}
+func (p *ProtocolT) HasDemangledName() bool {
+	return p.Size >= (_protoSizeEmpty + 2*uint32(unsafe.Sizeof(uint64(0))))
+}
+func (p *ProtocolT) HasClassProperties() bool {
+	return p.Size >= (_protoSizeEmpty + 3*uint32(unsafe.Sizeof(uint64(0))))
+}
+
 type Protocol32T struct {
 	IsaVMAddr                     uint32
 	NameVMAddr                    uint32
@@ -391,6 +405,18 @@ type Protocol32T struct {
 	ExtendedMethodTypesVMAddr uint32
 	DemangledNameVMAddr       uint32
 	ClassPropertiesVMAddr     uint32
+}
+
+const _proto32SizeEmpty = uint32(unsafe.Offsetof(Protocol32T{}.ExtendedMethodTypesVMAddr))
+
+func (p *Protocol32T) HasExtendedMethodTypes() bool {
+	return p.Size >= (_proto32SizeEmpty + uint32(unsafe.Sizeof(uint32(0))))
+}
+func (p *Protocol32T) HasDemangledName() bool {
+	return p.Size >= (_proto32SizeEmpty + 2*uint32(unsafe.Sizeof(uint32(0))))
+}
+func (p *Protocol32T) HasClassProperties() bool {
+	return p.Size >= (_proto32SizeEmpty + 3*uint32(unsafe.Sizeof(uint32(0))))
 }
 
 type Protocol struct {

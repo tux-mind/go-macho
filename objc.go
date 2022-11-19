@@ -360,7 +360,7 @@ func (f *File) GetObjCClass(vmaddr uint64) (*objc.Class, error) {
 	if info.BaseProtocolsVMAddr > 0 {
 		prots, err = f.parseObjcProtocolList(info.BaseProtocolsVMAddr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read protocols vmaddr: %v", err)
+			return nil, fmt.Errorf("failed to read protocols vmaddr: %#x; %v", info.BaseProtocolsVMAddr, err)
 		}
 	}
 
@@ -709,7 +709,7 @@ func (f *File) getObjcProtocol(vmaddr uint64) (proto *objc.Protocol, err error) 
 			return nil, fmt.Errorf("failed to read instance property vmaddr: %v", err)
 		}
 	}
-	if protoPtr.ExtendedMethodTypesVMAddr > 0 {
+	if protoPtr.ExtendedMethodTypesVMAddr > 0 && protoPtr.HasExtendedMethodTypes() {
 		protoPtr.ExtendedMethodTypesVMAddr = f.vma.Convert(protoPtr.ExtendedMethodTypesVMAddr)
 		off, err := f.vma.GetOffset(protoPtr.ExtendedMethodTypesVMAddr)
 		if err != nil {
@@ -726,7 +726,7 @@ func (f *File) getObjcProtocol(vmaddr uint64) (proto *objc.Protocol, err error) 
 			return nil, fmt.Errorf("failed to read proto extended method types cstring: %v", err)
 		}
 	}
-	if protoPtr.DemangledNameVMAddr > 0 {
+	if protoPtr.DemangledNameVMAddr > 0 && protoPtr.HasDemangledName() {
 		protoPtr.DemangledNameVMAddr = f.vma.Convert(protoPtr.DemangledNameVMAddr)
 		proto.DemangledName, err = f.GetCString(protoPtr.DemangledNameVMAddr)
 		if err != nil {
@@ -1260,6 +1260,16 @@ func (p *protocol32T) CopyTo64(p64 *objc.ProtocolT) {
 	p64.ExtendedMethodTypesVMAddr = uint64(p.ExtendedMethodTypesVMAddr)
 	p64.DemangledNameVMAddr = uint64(p.DemangledNameVMAddr)
 	p64.ClassPropertiesVMAddr = uint64(p.ClassPropertiesVMAddr)
+
+	// convert Size to the value it would have on 64 bits
+	// Size represent the size of the entire struct, signaling the presence of the last 3 fields.
+	// all fields double in size fom 32 bits to 64 bits, except for Size and Flags ( 8 bytes )
+
+	if p.Size >= 40 /* offsetof(Flags) + sizeof(Flags) => */ {
+		p64.Size = 2*p.Size - 8
+	} else {
+		//FIXME: logger?
+	}
 }
 
 type category32T objc.Category32T
