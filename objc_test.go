@@ -26,6 +26,142 @@ type objcFileTest struct {
 	categoriesClassBinds []bindCategoryTest
 }
 
+var nsobjectProtocol = objc.Protocol{
+	Name: "NSObject",
+	InstanceMethods: []objc.Method{
+		{Name: "isEqual:", Types: "B24@0:8@16"},
+		{Name: "class", Types: "#16@0:8"},
+		{Name: "self", Types: "@16@0:8"},
+		{Name: "performSelector:", Types: "@24@0:8:16"},
+		{Name: "performSelector:withObject:", Types: "@32@0:8:16@24"},
+		{Name: "performSelector:withObject:withObject:", Types: "@40@0:8:16@24@32"},
+		{Name: "isProxy", Types: "B16@0:8"},
+		{Name: "isKindOfClass:", Types: "B24@0:8#16"},
+		{Name: "isMemberOfClass:", Types: "B24@0:8#16"},
+		{Name: "conformsToProtocol:", Types: "B24@0:8@16"},
+		{Name: "respondsToSelector:", Types: "B24@0:8:16"},
+		{Name: "retain", Types: "@16@0:8"},
+		{Name: "release", Types: "Vv16@0:8"},
+		{Name: "autorelease", Types: "@16@0:8"},
+		{Name: "retainCount", Types: "Q16@0:8"},
+		{Name: "zone", Types: "^{_NSZone=}16@0:8"},
+		{Name: "hash", Types: "Q16@0:8"},
+		{Name: "superclass", Types: "#16@0:8"},
+		{Name: "description", Types: "@16@0:8"},
+	},
+	OptionalInstanceMethods: []objc.Method{
+		{Name: "debugDescription", Types: "@16@0:8"},
+	},
+	InstanceProperties: []objc.Property{
+		{Name: "hash", Attributes: "TQ,R"},
+		{Name: "superclass", Attributes: "T#,R"},
+		{Name: "description", Attributes: "T@\"NSString\",R,C"},
+		{Name: "debugDescription", Attributes: "T@\"NSString\",R,C"},
+	},
+	ExtendedMethodTypes: "B24@0:8@16",
+}
+
+var uiAppDelegateProtocol = objc.Protocol{
+	Name:                "UIApplicationDelegate",
+	Prots:               []objc.Protocol{nsobjectProtocol},
+	ExtendedMethodTypes: "v24@0:8@\"UIApplication\"16",
+	OptionalInstanceMethods: []objc.Method{
+		{Name: "applicationDidFinishLaunching:", Types: "v24@0:8@16"},
+		{Name: "application:willFinishLaunchingWithOptions:", Types: "B32@0:8@16@24"},
+		{Name: "application:didFinishLaunchingWithOptions:", Types: "B32@0:8@16@24"},
+		{Name: "applicationDidBecomeActive:", Types: "v24@0:8@16"},
+		{Name: "applicationWillResignActive:", Types: "v24@0:8@16"},
+		{Name: "application:handleOpenURL:", Types: "B32@0:8@16@24"},
+		{Name: "application:openURL:sourceApplication:annotation:", Types: "B48@0:8@16@24@32@40"},
+		{Name: "application:openURL:options:", Types: "B40@0:8@16@24@32"},
+		{Name: "applicationDidReceiveMemoryWarning:", Types: "v24@0:8@16"},
+		{Name: "applicationWillTerminate:", Types: "v24@0:8@16"},
+		{Name: "applicationSignificantTimeChange:", Types: "v24@0:8@16"},
+		{Name: "application:willChangeStatusBarOrientation:duration:", Types: "v40@0:8@16q24d32"},
+		{Name: "application:didChangeStatusBarOrientation:", Types: "v32@0:8@16q24"},
+		{Name: "application:willChangeStatusBarFrame:", Types: "v56@0:8@16{CGRect={CGPoint=dd}{CGSize=dd}}24"},
+		{Name: "application:didChangeStatusBarFrame:", Types: "v56@0:8@16{CGRect={CGPoint=dd}{CGSize=dd}}24"},
+		{Name: "application:didRegisterUserNotificationSettings:", Types: "v32@0:8@16@24"},
+		{Name: "application:didRegisterForRemoteNotificationsWithDeviceToken:", Types: "v32@0:8@16@24"},
+		{Name: "application:didFailToRegisterForRemoteNotificationsWithError:", Types: "v32@0:8@16@24"},
+		{Name: "application:didReceiveRemoteNotification:", Types: "v32@0:8@16@24"},
+		{Name: "application:didReceiveLocalNotification:", Types: "v32@0:8@16@24"},
+		{Name: "application:handleActionWithIdentifier:forLocalNotification:completionHandler:", Types: "v48@0:8@16@24@32@?40"},
+		{Name: "application:handleActionWithIdentifier:forRemoteNotification:withResponseInfo:completionHandler:", Types: "v56@0:8@16@24@32@40@?48"},
+		{Name: "application:handleActionWithIdentifier:forRemoteNotification:completionHandler:", Types: "v48@0:8@16@24@32@?40"},
+		{Name: "application:handleActionWithIdentifier:forLocalNotification:withResponseInfo:completionHandler:", Types: "v56@0:8@16@24@32@40@?48"},
+		{Name: "application:didReceiveRemoteNotification:fetchCompletionHandler:", Types: "v40@0:8@16@24@?32"},
+		{Name: "application:performFetchWithCompletionHandler:", Types: "v32@0:8@16@?24"},
+		{Name: "application:performActionForShortcutItem:completionHandler:", Types: "v40@0:8@16@24@?32"},
+		{Name: "application:handleEventsForBackgroundURLSession:completionHandler:", Types: "v40@0:8@16@24@?32"},
+		{Name: "application:handleWatchKitExtensionRequest:reply:", Types: "v40@0:8@16@24@?32"},
+		{Name: "applicationShouldRequestHealthAuthorization:", Types: "v24@0:8@16"},
+		{Name: "application:handlerForIntent:", Types: "@32@0:8@16@24"},
+		{Name: "application:handleIntent:completionHandler:", Types: "v40@0:8@16@24@?32"},
+		{Name: "applicationDidEnterBackground:", Types: "v24@0:8@16"},
+		{Name: "applicationWillEnterForeground:", Types: "v24@0:8@16"},
+		{Name: "applicationProtectedDataWillBecomeUnavailable:", Types: "v24@0:8@16"},
+		{Name: "applicationProtectedDataDidBecomeAvailable:", Types: "v24@0:8@16"},
+		{Name: "application:supportedInterfaceOrientationsForWindow:", Types: "Q32@0:8@16@24"},
+		{Name: "application:shouldAllowExtensionPointIdentifier:", Types: "B32@0:8@16@24"},
+		{Name: "application:viewControllerWithRestorationIdentifierPath:coder:", Types: "@40@0:8@16@24@32"},
+		{Name: "application:shouldSaveSecureApplicationState:", Types: "B32@0:8@16@24"},
+		{Name: "application:shouldRestoreSecureApplicationState:", Types: "B32@0:8@16@24"},
+		{Name: "application:willEncodeRestorableStateWithCoder:", Types: "v32@0:8@16@24"},
+		{Name: "application:didDecodeRestorableStateWithCoder:", Types: "v32@0:8@16@24"},
+		{Name: "application:shouldSaveApplicationState:", Types: "B32@0:8@16@24"},
+		{Name: "application:shouldRestoreApplicationState:", Types: "B32@0:8@16@24"},
+		{Name: "application:willContinueUserActivityWithType:", Types: "B32@0:8@16@24"},
+		{Name: "application:continueUserActivity:restorationHandler:", Types: "B40@0:8@16@24@?32"},
+		{Name: "application:didFailToContinueUserActivityWithType:error:", Types: "v40@0:8@16@24@32"},
+		{Name: "application:didUpdateUserActivity:", Types: "v32@0:8@16@24"},
+		{Name: "application:userDidAcceptCloudKitShareWithMetadata:", Types: "v32@0:8@16@24"},
+		{Name: "application:configurationForConnectingSceneSession:options:", Types: "@40@0:8@16@24@32"},
+		{Name: "application:didDiscardSceneSessions:", Types: "v32@0:8@16@24"},
+		{Name: "applicationShouldAutomaticallyLocalizeKeyCommands:", Types: "B24@0:8@16"},
+		{Name: "window", Types: "@16@0:8"},
+		{Name: "setWindow:", Types: "v24@0:8@16"},
+	},
+	InstanceProperties: []objc.Property{
+		{Name: "window", Attributes: "T@\"UIWindow\",&,N"},
+	},
+}
+
+var uiWindowSceneDelegateProtocol = objc.Protocol{
+	Name: "UIWindowSceneDelegate",
+	Prots: []objc.Protocol{{
+		Name:  "UISceneDelegate",
+		Prots: []objc.Protocol{nsobjectProtocol},
+		OptionalInstanceMethods: []objc.Method{
+			{Name: "scene:willConnectToSession:options:", Types: `v40@0:8@16@24@32`},
+			{Name: "sceneDidDisconnect:", Types: `v24@0:8@16`},
+			{Name: "sceneDidBecomeActive:", Types: `v24@0:8@16`},
+			{Name: "sceneWillResignActive:", Types: `v24@0:8@16`},
+			{Name: "sceneWillEnterForeground:", Types: `v24@0:8@16`},
+			{Name: "sceneDidEnterBackground:", Types: `v24@0:8@16`},
+			{Name: "scene:openURLContexts:", Types: `v32@0:8@16@24`},
+			{Name: "stateRestorationActivityForScene:", Types: `@24@0:8@16`},
+			{Name: "scene:restoreInteractionStateWithUserActivity:", Types: `v32@0:8@16@24`},
+			{Name: "scene:willContinueUserActivityWithType:", Types: `v32@0:8@16@24`},
+			{Name: "scene:continueUserActivity:", Types: `v32@0:8@16@24`},
+			{Name: "scene:didFailToContinueUserActivityWithType:error:", Types: `v40@0:8@16@24@32`},
+			{Name: "scene:didUpdateUserActivity:", Types: `v32@0:8@16@24`},
+		},
+		ExtendedMethodTypes: `v40@0:8@"UIScene"16@"UISceneSession"24@"UISceneConnectionOptions"32`,
+	}},
+	OptionalInstanceMethods: []objc.Method{
+		{Name: "windowScene:didUpdateCoordinateSpace:interfaceOrientation:traitCollection:", Types: `v48@0:8@16@24q32@40`},
+		{Name: "windowScene:performActionForShortcutItem:completionHandler:", Types: `v40@0:8@16@24@?32`},
+		{Name: "windowScene:userDidAcceptCloudKitShareWithMetadata:", Types: `v32@0:8@16@24`},
+		{Name: "window", Types: `@16@0:8`},
+		{Name: "setWindow:", Types: `v24@0:8@16`},
+	},
+	InstanceProperties: []objc.Property{
+		{Name: "window", Attributes: `T@"UIWindow",&,N`},
+	},
+	ExtendedMethodTypes: `v48@0:8@"UIWindowScene"16@"<UICoordinateSpace>"24q32@"UITraitCollection"40`,
+}
+
 var fooProtocol = objc.Protocol{
 	Name:                "FooProtocol",
 	ExtendedMethodTypes: "v16@0:8",
@@ -104,6 +240,73 @@ var objcFileTests = []objcFileTest{
 		file:              "internal/testdata/objc/liberror-x86_64-darwin-dylib.base64",
 		classes:           []*objc.Class{&liberrorClass},
 		classesSuperBinds: []bindClassTest{{"SampleClass", "NSObject"}},
+	}, {
+		// LC_DYLD_CHAINED_FIXUPS
+		file: "internal/testdata/objc/breakmedaddy-armv8-darwin-exec.base64",
+		classes: []*objc.Class{{
+			Name:       "ViewController",
+			SuperClass: "UIViewController",
+			InstanceMethods: []objc.Method{
+				{Name: "viewDidLoad", Types: "v16@0:8"},
+				{Name: "isValidPin:", Types: "B24@0:8@16"},
+				{Name: "tryMeButton:", Types: "v24@0:8@16"},
+				{Name: "touchesBegan:withEvent:", Types: "v32@0:8@16@24"},
+				{Name: "label", Types: "@16@0:8"},
+				{Name: "setLabel:", Types: "v24@0:8@16"},
+				{Name: "secret", Types: "@16@0:8"},
+				{Name: "setSecret:", Types: "v24@0:8@16"},
+				{Name: ".cxx_destruct", Types: "v16@0:8"},
+			},
+			Ivars: []objc.Ivar{
+				{Name: "_secret", Type: "@\"UITextField\""},
+				{Name: "_label", Type: "@\"UILabel\""},
+			},
+			Props: []objc.Property{
+				{Name: "label", Attributes: "T@\"UILabel\",W,N,V_label"},
+				{Name: "secret", Attributes: "T@\"UITextField\",W,N,V_secret"},
+			},
+		}, {
+			Name:       "AppDelegate",
+			SuperClass: "UIResponder",
+			Prots:      []objc.Protocol{uiAppDelegateProtocol},
+			InstanceMethods: []objc.Method{
+				{Name: "application:didFinishLaunchingWithOptions:", Types: "B32@0:8@16@24"},
+				{Name: "application:configurationForConnectingSceneSession:options:", Types: "@40@0:8@16@24@32"},
+				{Name: "application:didDiscardSceneSessions:", Types: "v32@0:8@16@24"},
+			},
+			Props: []objc.Property{
+				{Name: "window", Attributes: `T@"UIWindow",&,N`},
+				{Name: "hash", Attributes: `TQ,R`},
+				{Name: "superclass", Attributes: `T#,R`},
+				{Name: "description", Attributes: `T@"NSString",R,C`},
+				{Name: "debugDescription", Attributes: `T@"NSString",R,C`},
+			},
+		}, {
+			Name:       "SceneDelegate",
+			SuperClass: "UIResponder",
+			Prots:      []objc.Protocol{uiWindowSceneDelegateProtocol},
+			InstanceMethods: []objc.Method{
+				{Name: "scene:willConnectToSession:options:", Types: "v40@0:8@16@24@32"},
+				{Name: "sceneDidDisconnect:", Types: "v24@0:8@16"},
+				{Name: "sceneDidBecomeActive:", Types: "v24@0:8@16"},
+				{Name: "sceneWillResignActive:", Types: "v24@0:8@16"},
+				{Name: "sceneWillEnterForeground:", Types: "v24@0:8@16"},
+				{Name: "sceneDidEnterBackground:", Types: "v24@0:8@16"},
+				{Name: "window", Types: "@16@0:8"},
+				{Name: "setWindow:", Types: "v24@0:8@16"},
+				{Name: ".cxx_destruct", Types: "v16@0:8"},
+			},
+			Props: []objc.Property{
+				{Name: "window", Attributes: `T@"UIWindow",&,N,V_window`},
+				{Name: "hash", Attributes: `TQ,R`},
+				{Name: "superclass", Attributes: `T#,R`},
+				{Name: "description", Attributes: `T@"NSString",R,C`},
+				{Name: "debugDescription", Attributes: `T@"NSString",R,C`},
+			},
+		}},
+		protocols: []objc.Protocol{
+			nsobjectProtocol, uiWindowSceneDelegateProtocol, uiWindowSceneDelegateProtocol.Prots[0], uiAppDelegateProtocol,
+		},
 	},
 }
 
@@ -339,25 +542,31 @@ func TestObjcStructs(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: failed to parse classes: %v", expectations.file, err)
 		}
-		if err := classesEquals(expectations.classes, classes); err != nil {
-			t.Logf("want: %v\n\nhave: %v\n", expectations.classes, classes)
-			t.Fatalf("%s: different classes: %v", expectations.file, err)
+		if expectations.classes != nil {
+			if err := classesEquals(expectations.classes, classes); err != nil {
+				t.Logf("want: %v\n\nhave: %v\n", expectations.classes, classes)
+				t.Fatalf("%s: different classes: %v", expectations.file, err)
+			}
 		}
 		protocols, err := f.GetObjCProtocols()
 		if err != nil {
 			t.Fatalf("%s: failed to parse protocols: %v", expectations.file, err)
 		}
-		if err = protocolsEquals(expectations.protocols, protocols); err != nil {
-			t.Logf("want: %v\n\nhave: %v\n", expectations.protocols, protocols)
-			t.Fatalf("%s: different protocols: %v", expectations.file, err)
+		if expectations.protocols != nil {
+			if err = protocolsEquals(expectations.protocols, protocols); err != nil {
+				t.Logf("want: %v\n\nhave: %v\n", expectations.protocols, protocols)
+				t.Fatalf("%s: different protocols: %v", expectations.file, err)
+			}
 		}
 		categories, err := f.GetObjCCategories()
 		if err != nil {
 			t.Fatalf("%s: failed to parse categories: %v", expectations.file, err)
 		}
-		if err := categoriesEquals(expectations.categories, categories); err != nil {
-			t.Logf("want: %v\n\nhave: %v\n", expectations.categories, categories)
-			t.Fatalf("%s: different categories: %v", expectations.file, err)
+		if expectations.categories != nil {
+			if err := categoriesEquals(expectations.categories, categories); err != nil {
+				t.Logf("want: %v\n\nhave: %v\n", expectations.categories, categories)
+				t.Fatalf("%s: different categories: %v", expectations.file, err)
+			}
 		}
 	}
 }
@@ -376,6 +585,9 @@ const clsSuperClassOffset32 = uint64(unsafe.Offsetof(_cls32T.SuperclassVMAddr))
 
 func TestObjcBinds(t *testing.T) {
 	for _, expectations := range objcFileTests {
+		if expectations.classesSuperBinds == nil && expectations.categoriesClassBinds == nil {
+			continue
+		}
 		f, err := openObscured(expectations.file)
 		if err != nil {
 			t.Fatalf("%s: failed to open file: %v", expectations.file, err)
