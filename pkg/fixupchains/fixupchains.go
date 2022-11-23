@@ -109,6 +109,87 @@ func (dcf *DyldChainedFixups) ParseStarts() error {
 	return nil
 }
 
+func (dcf *DyldChainedFixups) GetImportForPointer(pointer uint64) (*DcfImport, error) {
+	// this is a best effort approach,
+	// ideally we should know the address at which the pointer came from
+	// to localise the dcf page responsable for it
+	// ref: https://github.com/PureDarwin/dyld/blob/56cd028e61d0d487e5b604eb6bd2c5d577b24241/src/ImageLoaderMachOCompressed.cpp#L1037
+	// ref: https://github.com/PureDarwin/dyld/blob/56cd028e61d0d487e5b604eb6bd2c5d577b24241/dyld3/MachOLoaded.cpp#L1047
+	var ordinal uint64
+
+	for _, s := range dcf.Starts {
+		if s.PageCount == 0 {
+			continue
+		}
+		switch s.PointerFormat {
+		case DYLD_CHAINED_PTR_32:
+			ptr := uint32(pointer)
+			if !Generic32IsBind(ptr) {
+				continue
+			}
+			bind := DyldChainedPtr32Bind{Pointer: ptr}
+			ordinal = bind.Ordinal()
+		case DYLD_CHAINED_PTR_64:
+			if !Generic64IsBind(pointer) {
+				continue
+			}
+			bind := DyldChainedPtr64Bind{Pointer: pointer}
+			ordinal = bind.Ordinal()
+		case DYLD_CHAINED_PTR_ARM64E:
+			if !DcpArm64eIsBind(pointer) {
+				continue
+			}
+			if DcpArm64eIsAuth(pointer) {
+				authBind := DyldChainedPtrArm64eAuthBind{Pointer: pointer}
+				ordinal = authBind.Ordinal()
+			} else {
+				bind := DyldChainedPtrArm64eBind{Pointer: pointer}
+				ordinal = bind.Ordinal()
+			}
+		default:
+			continue
+		}
+		if ordinal < uint64(len(dcf.Imports)) {
+			return &dcf.Imports[ordinal], nil
+		}
+	}
+	return nil, fmt.Errorf("not a bind pointer")
+}
+
+func (dcf *DyldChainedFixups) RebasePointer(preferredLoadAddress uint64, pointer uint64) uint64 {
+	// see notes of GetImportsForPointer
+	// ref: https://github.com/PureDarwin/dyld/blob/56cd028e61d0d487e5b604eb6bd2c5d577b24241/dyld3/MachOLoaded.cpp#L1014
+	for _, s := range dcf.Starts {
+		if s.PageCount == 0 {
+			continue
+		}
+		switch s.PointerFormat {
+		case DYLD_CHAINED_PTR_32:
+			ptr := uint32(pointer)
+			if !Generic32IsBind(ptr) {
+				rebase := DyldChainedPtr32Rebase{Pointer: ptr}
+				return rebase.Target()
+			}
+		case DYLD_CHAINED_PTR_64:
+			if !Generic64IsBind(pointer) {
+				rebase := DyldChainedPtr64Rebase{Pointer: pointer}
+				return uint64(rebase.UnpackedTarget())
+			}
+		case DYLD_CHAINED_PTR_ARM64E:
+			if !DcpArm64eIsBind(pointer) {
+				if DcpArm64eIsAuth(pointer) {
+					authRebase := DyldChainedPtrArm64eAuthRebase{Pointer: pointer}
+					return authRebase.Target() + preferredLoadAddress
+				} else {
+					rebase := DyldChainedPtrArm64eRebase{Pointer: pointer}
+					return rebase.UnpackTarget()
+				}
+			}
+		}
+	}
+	return pointer
+}
+
 func (dcf *DyldChainedFixups) walkDcFixupChain(segIdx int, pageIndex uint16, offsetInPage DCPtrStart) error {
 
 	var dcPtr uint32
