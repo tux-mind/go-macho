@@ -1602,43 +1602,21 @@ func (f *File) SlidePointer(ptr uint64) uint64 {
 }
 
 func (f *File) convertToVMAddr(value uint64) uint64 {
-	if f.HasFixups() {
-		if fixupchains.DcpArm64eIsRebase(value) {
-			if fixupchains.DcpArm64eIsAuth(value) {
-				dcp := fixupchains.DyldChainedPtrArm64eAuthRebase{Pointer: value}
-				return dcp.Target() + f.preferredLoadAddress()
-			}
-			dcp := fixupchains.DyldChainedPtrArm64eRebase{Pointer: value}
-			return dcp.UnpackTarget()
-		}
+	if dcf, err := f.DyldChainedFixups(); err == nil {
+		return dcf.RebasePointer(f.preferredLoadAddress(), value)
 	}
 	return value
 }
 
 // GetBindName returns the import name for a given dyld chained pointer
 func (f *File) GetBindName(pointer uint64) (string, error) {
-	var err error
-
-	if f.HasFixups() {
-		if f.dcf == nil {
-			f.dcf, err = f.DyldChainedFixups()
-			if err != nil {
-				return "", fmt.Errorf("failed to parse dyld chained fixups: %v", err)
-			}
-		}
-		if len(f.dcf.Imports) > 0 {
-			if !fixupchains.DcpArm64eIsRebase(pointer) {
-				if fixupchains.DcpArm64eIsAuth(pointer) {
-					authBind := fixupchains.DyldChainedPtrArm64eAuthBind{Pointer: pointer}
-					return f.dcf.Imports[authBind.Ordinal()].Name, nil
-				}
-				bind := fixupchains.DyldChainedPtrArm64eBind{Pointer: pointer}
-				return f.dcf.Imports[bind.Ordinal()].Name, nil
-			}
-		}
+	if dcf, err := f.DyldChainedFixups(); err != nil {
+		return "", fmt.Errorf("failed to parse dyld chained fixups: %v", err)
+	} else if i, err := dcf.GetImportForPointer(pointer); err != nil {
+		return "", fmt.Errorf("failed to find an import for %#x: %v", pointer, err)
+	} else {
+		return i.Name, nil
 	}
-
-	return "", fmt.Errorf("MachO does not contain dyld chained fixups")
 }
 
 // GetCString returns a c-string at a given virtual address in the MachO
@@ -2039,6 +2017,9 @@ func (f *File) DyldExports() ([]trie.TrieExport, error) {
 
 // HasFixups does macho contain a LC_DYLD_CHAINED_FIXUPS load command
 func (f *File) HasFixups() bool {
+	if f.vma.ChainedPointerFormat > 0 {
+		return true
+	}
 	for _, l := range f.Loads {
 		if _, ok := l.(*DyldChainedFixups); ok {
 			return true
@@ -2049,14 +2030,18 @@ func (f *File) HasFixups() bool {
 
 // DyldChainedFixups returns the dyld chained fixups.
 func (f *File) DyldChainedFixups() (*fixupchains.DyldChainedFixups, error) {
+	var err error
+	if f.dcf != nil {
+		return f.dcf, nil
+	}
 	for _, l := range f.Loads {
 		if dcfLC, ok := l.(*DyldChainedFixups); ok {
 			data := make([]byte, dcfLC.Size)
-			if _, err := f.cr.ReadAt(data, int64(dcfLC.Offset)); err != nil {
+			if _, err = f.cr.ReadAt(data, int64(dcfLC.Offset)); err != nil {
 				return nil, fmt.Errorf("failed to read DyldChainedFixups data at offset=%#x; %v", int64(dcfLC.Offset), err)
 			}
 			dcf := fixupchains.NewChainedFixups(bytes.NewReader(data), &f.sr, f.ByteOrder)
-			if err := dcf.ParseStarts(); err != nil {
+			if err = dcf.ParseStarts(); err != nil {
 				return nil, fmt.Errorf("failed to parse dyld chained fixup starts: %v", err)
 			}
 			segs := f.Segments()
@@ -2069,8 +2054,14 @@ func (f *File) DyldChainedFixups() (*fixupchains.DyldChainedFixups, error) {
 					// dyld-750.6/dyld3/shared-cache/AdjustDylibSegments.cpp
 					dcf.Starts[idx].SegmentOffset = segs[idx].Offset
 				}
+				// set the ChainedPointerFormat to the first valid encountered
+				// ref: https://github.com/PureDarwin/dyld/blob/56cd028e61d0d487e5b604eb6bd2c5d577b24241/dyld3/MachOAnalyzer.cpp#L3005
+				if f.vma.ChainedPointerFormat == 0 && start.DyldChainedStartsInSegment.PageCount > 0 {
+					f.vma.ChainedPointerFormat = uint16(start.PointerFormat)
+				}
 			}
-			return dcf.Parse()
+			f.dcf, err = dcf.Parse()
+			return f.dcf, err
 		}
 	}
 	return nil, fmt.Errorf("macho does not contain LC_DYLD_CHAINED_FIXUPS")
