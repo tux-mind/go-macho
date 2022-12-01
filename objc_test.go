@@ -242,7 +242,7 @@ var objcFileTests = []objcFileTest{
 		classesSuperBinds: []bindClassTest{{"SampleClass", "NSObject"}},
 	}, {
 		// LC_DYLD_CHAINED_FIXUPS
-		file: "internal/testdata/objc/breakmedaddy-armv8-darwin-exec.base64",
+		file: "internal/testdata/objc/breakmedaddy-arm64-darwin-exec.base64",
 		classes: []*objc.Class{{
 			Name:       "ViewController",
 			SuperClass: "UIViewController",
