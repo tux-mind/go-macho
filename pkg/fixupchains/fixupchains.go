@@ -129,7 +129,7 @@ func (dcf *DyldChainedFixups) GetImportForPointer(pointer uint64) (*DcfImport, e
 			}
 			bind := DyldChainedPtr32Bind{Pointer: ptr}
 			ordinal = bind.Ordinal()
-		case DYLD_CHAINED_PTR_64:
+		case DYLD_CHAINED_PTR_64, DYLD_CHAINED_PTR_64_OFFSET:
 			if !Generic64IsBind(pointer) {
 				continue
 			}
@@ -154,40 +154,6 @@ func (dcf *DyldChainedFixups) GetImportForPointer(pointer uint64) (*DcfImport, e
 		}
 	}
 	return nil, fmt.Errorf("not a bind pointer")
-}
-
-func (dcf *DyldChainedFixups) RebasePointer(preferredLoadAddress uint64, pointer uint64) uint64 {
-	// see notes of GetImportsForPointer
-	// ref: https://github.com/PureDarwin/dyld/blob/56cd028e61d0d487e5b604eb6bd2c5d577b24241/dyld3/MachOLoaded.cpp#L1014
-	for _, s := range dcf.Starts {
-		if s.PageCount == 0 {
-			continue
-		}
-		switch s.PointerFormat {
-		case DYLD_CHAINED_PTR_32:
-			ptr := uint32(pointer)
-			if !Generic32IsBind(ptr) {
-				rebase := DyldChainedPtr32Rebase{Pointer: ptr}
-				return rebase.Target()
-			}
-		case DYLD_CHAINED_PTR_64:
-			if !Generic64IsBind(pointer) {
-				rebase := DyldChainedPtr64Rebase{Pointer: pointer}
-				return uint64(rebase.UnpackedTarget())
-			}
-		case DYLD_CHAINED_PTR_ARM64E:
-			if !DcpArm64eIsBind(pointer) {
-				if DcpArm64eIsAuth(pointer) {
-					authRebase := DyldChainedPtrArm64eAuthRebase{Pointer: pointer}
-					return authRebase.Target() + preferredLoadAddress
-				} else {
-					rebase := DyldChainedPtrArm64eRebase{Pointer: pointer}
-					return rebase.UnpackTarget()
-				}
-			}
-		}
-	}
-	return pointer
 }
 
 func (dcf *DyldChainedFixups) walkDcFixupChain(segIdx int, pageIndex uint16, offsetInPage DCPtrStart) error {
@@ -271,10 +237,16 @@ func (dcf *DyldChainedFixups) walkDcFixupChain(segIdx int, pageIndex uint16, off
 			if err := binary.Read(dcf.sr, dcf.bo, &dcPtr64); err != nil {
 				return err
 			}
-			dcf.Starts[segIdx].Fixups = append(dcf.Starts[segIdx].Fixups, DyldChainedPtr64RebaseOffset{
-				Pointer: dcPtr64,
-				Fixup:   fixupLocation,
-			})
+			if Generic64IsBind(dcPtr64) {
+				bind := DyldChainedPtr64Bind{Pointer: dcPtr64, Fixup: fixupLocation}
+				bind.Import = dcf.Imports[bind.Ordinal()].Name
+				dcf.Starts[segIdx].Fixups = append(dcf.Starts[segIdx].Fixups, bind)
+			} else {
+				dcf.Starts[segIdx].Fixups = append(dcf.Starts[segIdx].Fixups, DyldChainedPtr64RebaseOffset{
+					Pointer: dcPtr64,
+					Fixup:   fixupLocation,
+				})
+			}
 			if Generic64Next(dcPtr64) == 0 {
 				chainEnd = true
 			}

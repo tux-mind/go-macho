@@ -110,10 +110,10 @@ func (f *File) GetObjCImageInfo() (*objc.ImageInfo, error) {
 				if err != nil {
 					return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 				}
-				f.cr.Seek(int64(off), io.SeekStart)
+				f.rr.Seek(int64(off), io.SeekStart)
 
 				dat := make([]byte, sec.Size)
-				if err := binary.Read(f.cr, f.ByteOrder, dat); err != nil {
+				if err := binary.Read(f.rr, f.ByteOrder, dat); err != nil {
 					return nil, fmt.Errorf("failed to read %s.%s data: %v", sec.Seg, sec.Name, err)
 				}
 
@@ -136,7 +136,7 @@ func (f *File) GetObjCClassInfo(vmaddr uint64) (*objc.ClassRO64, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 	}
-	f.cr.Seek(int64(off), io.SeekStart)
+	f.rr.Seek(int64(off), io.SeekStart)
 
 	if err := binaryReadStruct[classRO](f, &classData); err != nil {
 		return nil, fmt.Errorf("failed to read %T: %v", classData, err)
@@ -163,10 +163,10 @@ func (f *File) GetObjCClassNames() (map[string]uint64, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 		}
-		f.cr.Seek(int64(off), io.SeekStart)
+		f.rr.Seek(int64(off), io.SeekStart)
 
 		dat := make([]byte, sec.Size)
-		if err := binary.Read(f.cr, f.ByteOrder, dat); err != nil {
+		if err := binary.Read(f.rr, f.ByteOrder, dat); err != nil {
 			return nil, fmt.Errorf("failed to read %s.%s data: %v", sec.Seg, sec.Name, err)
 		}
 
@@ -196,10 +196,10 @@ func (f *File) GetObjCMethodNames() (map[string]uint64, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 		}
-		f.cr.Seek(int64(off), io.SeekStart)
+		f.rr.Seek(int64(off), io.SeekStart)
 
 		dat := make([]byte, sec.Size)
-		if err := binary.Read(f.cr, f.ByteOrder, dat); err != nil {
+		if err := binary.Read(f.rr, f.ByteOrder, dat); err != nil {
 			return nil, fmt.Errorf("failed to read %s.%s data: %v", sec.Seg, sec.Name, err)
 		}
 
@@ -224,7 +224,7 @@ func (f *File) GetObjCMethodNames() (map[string]uint64, error) {
 func (f *File) ReadPointer(offset uint64) (ptr uint64, err error) {
 	ptrSize := f.pointerSize()
 	var buf = make([]byte, ptrSize)
-	if _, err = f.cr.ReadAt(buf, int64(offset)); err == nil {
+	if _, err = f.rr.ReadAt(buf, int64(offset)); err == nil {
 		if ptrSize == 4 {
 			ptr = uint64(f.ByteOrder.Uint32(buf))
 		} else {
@@ -240,7 +240,7 @@ func (f *File) readPointersFromSection(sec *Section) (ptrs []uint64, err error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 	}
-	f.cr.Seek(int64(off), io.SeekStart)
+	f.rr.Seek(int64(off), io.SeekStart)
 
 	return readPointers(f, sec.Size/f.pointerSize())
 }
@@ -321,7 +321,7 @@ func (f *File) GetObjCClass(vmaddr uint64) (*objc.Class, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 	}
-	f.cr.Seek(int64(off), io.SeekStart)
+	f.rr.Seek(int64(off), io.SeekStart)
 
 	if err := binaryReadStruct[swiftClassMetadata](f, &classPtr); err != nil {
 		return nil, fmt.Errorf("failed to read %T: %v", classPtr, err)
@@ -479,7 +479,7 @@ func (f *File) GetObjCCategories() ([]objc.Category, error) {
 					if err != nil {
 						return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 					}
-					f.cr.Seek(int64(off), io.SeekStart)
+					f.rr.Seek(int64(off), io.SeekStart)
 
 					if err := binaryReadStruct[category32T](f, &categoryPtr); err != nil {
 						return nil, fmt.Errorf("failed to read %T: %v", categoryPtr, err)
@@ -608,7 +608,7 @@ func (f *File) parseObjcProtocolList(vmaddr uint64) ([]objc.Protocol, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 	}
-	f.cr.Seek(int64(off), io.SeekStart)
+	f.rr.Seek(int64(off), io.SeekStart)
 
 	var protList objc.ProtocolList
 
@@ -639,7 +639,7 @@ func (f *File) getObjcProtocol(vmaddr uint64) (proto *objc.Protocol, err error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 	}
-	f.cr.Seek(int64(off), io.SeekStart)
+	f.rr.Seek(int64(off), io.SeekStart)
 
 	if err := binaryReadStruct[protocol32T](f, &protoPtr); err != nil {
 		return nil, fmt.Errorf("failed to read protocol_t: %v", err)
@@ -776,10 +776,10 @@ func (f *File) GetObjCMethodList() ([]objc.Method, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 		}
-		f.cr.Seek(int64(off), io.SeekStart)
+		f.rr.Seek(int64(off), io.SeekStart)
 
 		dat := make([]byte, sec.Size)
-		if err := binary.Read(f.cr, f.ByteOrder, dat); err != nil {
+		if err := binary.Read(f.rr, f.ByteOrder, dat); err != nil {
 			return nil, fmt.Errorf("failed to read %s.%s data: %v", sec.Seg, sec.Name, err)
 		}
 
@@ -837,7 +837,7 @@ func (f *File) GetObjCMethodList() ([]objc.Method, error) {
 				}
 			} else {
 				methods := make([]objc.MethodT, methodList.Count)
-				f.cr.Seek(currOffset, io.SeekStart)
+				f.rr.Seek(currOffset, io.SeekStart)
 				if err := binaryReadStructs[method32T](f, methods); err != nil {
 					return nil, fmt.Errorf("failed to read method_t(s) (small): %v", err)
 				}
@@ -884,9 +884,9 @@ func (f *File) GetObjCMethods(vmaddr uint64) ([]objc.Method, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 	}
-	f.cr.Seek(int64(off), io.SeekStart)
+	f.rr.Seek(int64(off), io.SeekStart)
 
-	if err := binary.Read(f.cr, f.ByteOrder, &methodList); err != nil {
+	if err := binary.Read(f.rr, f.ByteOrder, &methodList); err != nil {
 		return nil, fmt.Errorf("failed to read method_list_t: %v", err)
 	}
 
@@ -901,10 +901,10 @@ func (f *File) readSmallMethods(methodList objc.MethodList) (objcMethods []objc.
 
 	var nameVMAddr uint64
 
-	currOffset, _ := f.cr.Seek(0, io.SeekCurrent)
+	currOffset, _ := f.rr.Seek(0, io.SeekCurrent)
 
 	methods := make([]objc.MethodSmallT, methodList.Count)
-	if err := binary.Read(f.cr, f.ByteOrder, &methods); err != nil {
+	if err := binary.Read(f.rr, f.ByteOrder, &methods); err != nil {
 		return nil, fmt.Errorf("failed to read method_t(s) (small): %v", err)
 	}
 
@@ -1002,9 +1002,9 @@ func (f *File) GetObjCIvars(vmaddr uint64) ([]objc.Ivar, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 	}
-	f.cr.Seek(int64(off), io.SeekStart)
+	f.rr.Seek(int64(off), io.SeekStart)
 
-	if err := binary.Read(f.cr, f.ByteOrder, &ivarsList); err != nil {
+	if err := binary.Read(f.rr, f.ByteOrder, &ivarsList); err != nil {
 		return nil, fmt.Errorf("failed to read objc_ivar_list_t: %v", err)
 	}
 
@@ -1058,9 +1058,9 @@ func (f *File) GetObjCProperties(vmaddr uint64) ([]objc.Property, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 	}
-	f.cr.Seek(int64(off), io.SeekStart)
+	f.rr.Seek(int64(off), io.SeekStart)
 
-	if err := binary.Read(f.cr, f.ByteOrder, &propList); err != nil {
+	if err := binary.Read(f.rr, f.ByteOrder, &propList); err != nil {
 		return nil, fmt.Errorf("failed to read objc_property_list_t: %v", err)
 	}
 
@@ -1337,11 +1337,11 @@ type struct32Copier[Struct32 any, Struct64 any] interface {
 // read a single pointer from current offset
 func readPointer(f *File) (res uint64, err error) {
 	if f.is64bit() {
-		err = binary.Read(f.cr, f.ByteOrder, &res)
+		err = binary.Read(f.rr, f.ByteOrder, &res)
 		return
 	}
 	var res32 uint32
-	err = binary.Read(f.cr, f.ByteOrder, &res32)
+	err = binary.Read(f.rr, f.ByteOrder, &res32)
 	return uint64(res32), err
 }
 
@@ -1349,11 +1349,11 @@ func readPointer(f *File) (res uint64, err error) {
 func readPointers(f *File, count uint64) (res []uint64, err error) {
 	res = make([]uint64, count)
 	if f.is64bit() {
-		err = binary.Read(f.cr, f.ByteOrder, res)
+		err = binary.Read(f.rr, f.ByteOrder, res)
 		return
 	}
 	buf := make([]byte, 4*count)
-	if _, err = io.ReadFull(f.cr, buf); err != nil {
+	if _, err = io.ReadFull(f.rr, buf); err != nil {
 		return nil, err
 	}
 
@@ -1366,11 +1366,11 @@ func readPointers(f *File, count uint64) (res []uint64, err error) {
 // read a struct regardless of the pointerSize, from current offset
 func binaryReadStruct[T32 any, T64 any, C struct32Copier[T32, T64]](f *File, target64 *T64) error {
 	if f.is64bit() {
-		return binary.Read(f.cr, f.ByteOrder, target64)
+		return binary.Read(f.rr, f.ByteOrder, target64)
 	}
 	t32 := new(T32)
 
-	if err := binary.Read(f.cr, f.ByteOrder, t32); err != nil {
+	if err := binary.Read(f.rr, f.ByteOrder, t32); err != nil {
 		return err
 	}
 
@@ -1382,11 +1382,11 @@ func binaryReadStruct[T32 any, T64 any, C struct32Copier[T32, T64]](f *File, tar
 // read a slice of structs regardless of the pointerSize, from current offset
 func binaryReadStructs[T32 any, T64 any, C struct32Copier[T32, T64]](f *File, target64 []T64) error {
 	if f.is64bit() {
-		return binary.Read(f.cr, f.ByteOrder, target64)
+		return binary.Read(f.rr, f.ByteOrder, target64)
 	}
 	buf := make([]T32, len(target64))
 
-	if err := binary.Read(f.cr, f.ByteOrder, buf); err != nil {
+	if err := binary.Read(f.rr, f.ByteOrder, buf); err != nil {
 		return err
 	}
 
@@ -1404,7 +1404,7 @@ func readStructsFromSection[T32 any, T64 any, C struct32Copier[T32, T64]](f *Fil
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert vmaddr: %v", err)
 	}
-	f.cr.Seek(int64(off), io.SeekStart)
+	f.rr.Seek(int64(off), io.SeekStart)
 
 	dstSize := uint64(0)
 

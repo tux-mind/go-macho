@@ -27,6 +27,8 @@ type Rebase interface {
 	Target() uint64
 	Raw() uint64
 	String(baseAddr ...uint64) string
+	// Resolves the rebase to the final target
+	Resolve(baseAddr uint64) uint64
 }
 
 type Bind interface {
@@ -142,6 +144,37 @@ func stride(pointerFormat DCPtrKind) uint64 {
 	}
 }
 
+func ptrSize(pointerFormat DCPtrKind) (size uint64, err error) {
+	switch pointerFormat {
+	case DYLD_CHAINED_PTR_ARM64E:
+		fallthrough
+	case DYLD_CHAINED_PTR_ARM64E_USERLAND:
+		fallthrough
+	case DYLD_CHAINED_PTR_ARM64E_USERLAND24:
+		fallthrough
+	case DYLD_CHAINED_PTR_ARM64E_KERNEL:
+		fallthrough
+	case DYLD_CHAINED_PTR_ARM64E_FIRMWARE:
+		fallthrough
+	case DYLD_CHAINED_PTR_64_KERNEL_CACHE:
+		fallthrough
+	case DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE:
+		fallthrough
+	case DYLD_CHAINED_PTR_64_OFFSET:
+		fallthrough
+	case DYLD_CHAINED_PTR_64:
+		return uint64(8), nil
+	case DYLD_CHAINED_PTR_32_FIRMWARE:
+		fallthrough
+	case DYLD_CHAINED_PTR_32_CACHE:
+		fallthrough
+	case DYLD_CHAINED_PTR_32:
+		return uint64(4), nil
+	default:
+		return 0, fmt.Errorf("unsupported pointer chain format: %d", pointerFormat)
+	}
+}
+
 // DyldChainedStartsInSegment object is embedded in dyld_chain_starts_in_image
 // and passed down to the kernel for page-in linking
 type DyldChainedStartsInSegment struct {
@@ -232,6 +265,9 @@ func (d DyldChainedPtrArm64eRebase) Bind() uint64 {
 }
 func (d DyldChainedPtrArm64eRebase) Auth() uint64 {
 	return types.ExtractBits(uint64(d.Pointer), 63, 1) // == 0
+}
+func (d DyldChainedPtrArm64eRebase) Resolve(baseAddr uint64) uint64 {
+	return d.UnpackTarget()
 }
 func (d DyldChainedPtrArm64eRebase) Kind() string {
 	return "rebase"
@@ -340,6 +376,9 @@ func (d DyldChainedPtrArm64eAuthRebase) Bind() uint64 {
 }
 func (d DyldChainedPtrArm64eAuthRebase) Auth() uint64 {
 	return types.ExtractBits(uint64(d.Pointer), 63, 1) // == 1
+}
+func (d DyldChainedPtrArm64eAuthRebase) Resolve(baseAddr uint64) uint64 {
+	return baseAddr + d.Target()
 }
 func (d DyldChainedPtrArm64eAuthRebase) Kind() string {
 	return "auth-rebase"
@@ -452,6 +491,9 @@ func (d DyldChainedPtr64Rebase) Next() uint64 {
 func (d DyldChainedPtr64Rebase) Bind() uint64 {
 	return types.ExtractBits(uint64(d.Pointer), 63, 1) // == 0
 }
+func (d DyldChainedPtr64Rebase) Resolve(baseAddr uint64) uint64 {
+	return d.High8()<<56 | d.Target()
+}
 func (d DyldChainedPtr64Rebase) Kind() string {
 	return "ptr64-rebase"
 }
@@ -499,6 +541,9 @@ func (d DyldChainedPtr64RebaseOffset) Next() uint64 {
 func (d DyldChainedPtr64RebaseOffset) Bind() uint64 {
 	return types.ExtractBits(uint64(d.Pointer), 63, 1) // == 0
 }
+func (d DyldChainedPtr64RebaseOffset) Resolve(baseAddr uint64) uint64 {
+	return baseAddr + (d.High8()<<56 | d.Target())
+}
 func (d DyldChainedPtr64RebaseOffset) Kind() string {
 	return "rebase-offset"
 }
@@ -545,6 +590,9 @@ func (d DyldChainedPtrArm64eRebase24) Bind() uint64 {
 }
 func (d DyldChainedPtrArm64eRebase24) Auth() uint64 {
 	return types.ExtractBits(uint64(d.Pointer), 63, 1) // == 0
+}
+func (d DyldChainedPtrArm64eRebase24) Resolve(baseAddr uint64) uint64 {
+	return baseAddr + d.UnpackTarget()
 }
 func (d DyldChainedPtrArm64eRebase24) Kind() string {
 	return "rebase24"
@@ -596,6 +644,9 @@ func (d DyldChainedPtrArm64eAuthRebase24) Bind() uint64 {
 }
 func (d DyldChainedPtrArm64eAuthRebase24) Auth() uint64 {
 	return types.ExtractBits(uint64(d.Pointer), 63, 1) // == 1
+}
+func (d DyldChainedPtrArm64eAuthRebase24) Resolve(baseAddr uint64) uint64 {
+	return d.Target()
 }
 func (d DyldChainedPtrArm64eAuthRebase24) Kind() string {
 	return "auth-rebase24"
@@ -811,6 +862,9 @@ func (d DyldChainedPtr64KernelCacheRebase) Next() uint64 {
 func (d DyldChainedPtr64KernelCacheRebase) IsAuth() uint64 {
 	return types.ExtractBits(uint64(d.Pointer), 63, 1)
 }
+func (d DyldChainedPtr64KernelCacheRebase) Resolve(baseAddr uint64) uint64 {
+	panic("not implemented yet")
+}
 func (d DyldChainedPtr64KernelCacheRebase) Kind() string {
 	return "kcache-rebase"
 }
@@ -854,6 +908,9 @@ type DyldChainedPtr32Rebase struct {
 func (d DyldChainedPtr32Rebase) Offset() uint64 {
 	return d.Fixup
 }
+func (d DyldChainedPtr32Rebase) Raw() uint64 {
+	return uint64(d.Pointer)
+}
 func (d DyldChainedPtr32Rebase) Target() uint64 {
 	return types.ExtractBits(uint64(d.Pointer), 0, 26) // vmaddr, 64MB max image size
 }
@@ -862,6 +919,9 @@ func (d DyldChainedPtr32Rebase) Next() uint32 {
 }
 func (d DyldChainedPtr32Rebase) Bind() uint32 {
 	return uint32(types.ExtractBits(uint64(d.Pointer), 31, 1)) // == 0
+}
+func (d DyldChainedPtr32Rebase) Resolve(baseAddr uint64) uint64 {
+	return baseAddr + d.Target()
 }
 func (d DyldChainedPtr32Rebase) Kind() string {
 	return "ptr32-rebase"
@@ -929,6 +989,9 @@ func (d DyldChainedPtr32CacheRebase) Target() uint64 {
 func (d DyldChainedPtr32CacheRebase) Next() uint32 {
 	return uint32(types.ExtractBits(uint64(d.Pointer), 30, 2)) // 4-byte stride
 }
+func (d DyldChainedPtr32CacheRebase) Resolve(baseAddr uint64) uint64 {
+	return baseAddr + d.Target()
+}
 func (d DyldChainedPtr32CacheRebase) Kind() string {
 	return "cache-rebase"
 }
@@ -956,6 +1019,9 @@ func (d DyldChainedPtr32FirmwareRebase) Target() uint64 {
 }
 func (d DyldChainedPtr32FirmwareRebase) Next() uint32 {
 	return uint32(types.ExtractBits(uint64(d.Pointer), 26, 6)) // 4-byte stride
+}
+func (d DyldChainedPtr32FirmwareRebase) Resolve(baseAddr uint64) uint64 {
+	return baseAddr + d.Target()
 }
 func (d DyldChainedPtr32FirmwareRebase) Kind() string {
 	return "firmware-rebase"

@@ -49,6 +49,9 @@ type File struct {
 	objc        map[uint64]*objc.Class
 	sr          types.MachoReader
 	cr          types.MachoReader
+	// rebased reader
+	// reads the file content after it would have been rebased by dyld
+	rr types.MachoReader
 
 	relativeSelectorBase uint64 // objc_opt version 16
 
@@ -331,6 +334,7 @@ func NewFile(r io.ReaderAt, config ...FileConfig) (*File, error) {
 		if config[0].CacheReader != nil {
 			f.cr = config[0].CacheReader
 		}
+		f.rr = f.sr
 		f.vma = &config[0].VMAddrConverter
 		loadsFilter = config[0].LoadFilter
 		f.relativeSelectorBase = config[0].RelativeSelectorBase
@@ -342,6 +346,7 @@ func NewFile(r io.ReaderAt, config ...FileConfig) (*File, error) {
 		}
 		f.sr = types.NewCustomSectionReader(r, f.vma, 0, 1<<63-1)
 		f.cr = f.sr
+		f.rr = f.sr
 	}
 
 	// Read and decode Mach magic to determine byte order, size.
@@ -1346,6 +1351,12 @@ func NewFile(r io.ReaderAt, config ...FileConfig) (*File, error) {
 			l.Offset = led.Offset
 			l.Size = led.Size
 			f.Loads[i] = l
+			llr := &fixupchains.LazyRebasedReader{
+				GetDyldchainFixups: f.DyldChainedFixups,
+				GetBaseAddr:        f.GetBaseAddress,
+				Reader:             f.sr,
+			}
+			f.rr = types.NewCustomSectionReader(llr, f.vma, 0, 1<<63-1)
 		case types.LC_FILESET_ENTRY:
 			var hdr types.FilesetEntryCmd
 			b := bytes.NewReader(cmddat)
@@ -1597,9 +1608,6 @@ func (f *File) SlidePointer(ptr uint64) uint64 {
 }
 
 func (f *File) convertToVMAddr(value uint64) uint64 {
-	if dcf, err := f.DyldChainedFixups(); err == nil {
-		return dcf.RebasePointer(f.preferredLoadAddress(), value)
-	}
 	return value
 }
 
